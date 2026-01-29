@@ -1,0 +1,197 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Toggle Vault infrastructure deployment - AKS with Managed Identity"
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment"
+      }
+    },
+    "environmentName": {
+      "type": "string",
+      "defaultValue": "prod",
+      "metadata": {
+        "description": "Environment name (dev, staging, prod)"
+      }
+    },
+    "clusterName": {
+      "type": "string",
+      "defaultValue": "aks-toggle-vault",
+      "metadata": {
+        "description": "Name of the AKS cluster"
+      }
+    },
+    "nodeCount": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1,
+      "maxValue": 10,
+      "metadata": {
+        "description": "Number of nodes in the AKS cluster"
+      }
+    },
+    "nodeVmSize": {
+      "type": "string",
+      "defaultValue": "Standard_B2s",
+      "metadata": {
+        "description": "VM size for AKS nodes"
+      }
+    },
+    "kubernetesVersion": {
+      "type": "string",
+      "defaultValue": "1.28",
+      "metadata": {
+        "description": "Kubernetes version"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the existing storage account containing toggle files"
+      }
+    },
+    "storageAccountResourceGroup": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().name]",
+      "metadata": {
+        "description": "Resource group of the storage account (if different)"
+      }
+    },
+    "managedIdentityName": {
+      "type": "string",
+      "defaultValue": "id-toggle-vault",
+      "metadata": {
+        "description": "Name of the user-assigned managed identity"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "application": "toggle-vault",
+        "managedBy": "arm-template"
+      },
+      "metadata": {
+        "description": "Tags to apply to all resources"
+      }
+    }
+  },
+  "variables": {
+    "aksName": "[format('{0}-{1}', parameters('clusterName'), parameters('location'))]",
+    "identityName": "[format('{0}-{1}', parameters('managedIdentityName'), parameters('location'))]",
+    "nodeResourceGroup": "[format('MC_{0}_{1}_{2}', resourceGroup().name, variables('aksName'), parameters('location'))]",
+    "storageBlobDataContributorRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+    "storageAccountId": "[resourceId(parameters('storageAccountResourceGroup'), 'Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('identityName')]",
+      "location": "[parameters('location')]",
+      "tags": "[union(parameters('tags'), createObject('environment', parameters('environmentName')))]"
+    },
+    {
+      "type": "Microsoft.ContainerService/managedClusters",
+      "apiVersion": "2024-01-01",
+      "name": "[variables('aksName')]",
+      "location": "[parameters('location')]",
+      "tags": "[union(parameters('tags'), createObject('environment', parameters('environmentName')))]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "dnsPrefix": "[variables('aksName')]",
+        "kubernetesVersion": "[parameters('kubernetesVersion')]",
+        "enableRBAC": true,
+        "agentPoolProfiles": [
+          {
+            "name": "systempool",
+            "count": "[parameters('nodeCount')]",
+            "vmSize": "[parameters('nodeVmSize')]",
+            "osType": "Linux",
+            "osSKU": "AzureLinux",
+            "mode": "System",
+            "enableAutoScaling": false,
+            "type": "VirtualMachineScaleSets"
+          }
+        ],
+        "networkProfile": {
+          "networkPlugin": "azure",
+          "loadBalancerSku": "standard"
+        },
+        "oidcIssuerProfile": {
+          "enabled": true
+        },
+        "securityProfile": {
+          "workloadIdentity": {
+            "enabled": true
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials",
+      "apiVersion": "2023-01-31",
+      "name": "[format('{0}/{1}', variables('identityName'), 'toggle-vault-federated')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]",
+        "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksName'))]"
+      ],
+      "properties": {
+        "issuer": "[reference(resourceId('Microsoft.ContainerService/managedClusters', variables('aksName'))).oidcIssuerProfile.issuerURL]",
+        "subject": "system:serviceaccount:toggle-vault:toggle-vault-sa",
+        "audiences": [
+          "api://AzureADTokenExchange"
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(variables('storageAccountId'), variables('identityName'), variables('storageBlobDataContributorRole'))]",
+      "scope": "[variables('storageAccountId')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[variables('storageBlobDataContributorRole')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))).principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    }
+  ],
+  "outputs": {
+    "aksName": {
+      "type": "string",
+      "value": "[variables('aksName')]"
+    },
+    "aksResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksName'))]"
+    },
+    "managedIdentityName": {
+      "type": "string",
+      "value": "[variables('identityName')]"
+    },
+    "managedIdentityClientId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))).clientId]"
+    },
+    "managedIdentityPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))).principalId]"
+    },
+    "oidcIssuerUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', variables('aksName'))).oidcIssuerProfile.issuerURL]"
+    },
+    "nodeResourceGroup": {
+      "type": "string",
+      "value": "[variables('nodeResourceGroup')]"
+    }
+  }
+}

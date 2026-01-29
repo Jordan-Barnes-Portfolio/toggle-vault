@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toggle Vault</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>Toggle Vault</h1>
+            <div class="header-actions">
+                <input type="text" id="search" placeholder="Search files..." class="search-input">
+                <button id="refresh-btn" class="btn btn-icon" title="Refresh">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+        
+        <main class="main">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Files</h2>
+                    <span id="file-count" class="badge">0</span>
+                </div>
+                <div id="file-tree" class="file-tree">
+                    <div class="loading">Loading files...</div>
+                </div>
+            </aside>
+            
+            <section class="content">
+                <div id="welcome-view" class="view welcome-view">
+                    <div class="welcome-message">
+                        <h2>Welcome to Toggle Vault</h2>
+                        <p>Select a file from the sidebar to view its version history.</p>
+                    </div>
+                </div>
+                
+                <div id="file-view" class="view file-view" style="display: none;">
+                    <div class="file-header">
+                        <h2 id="file-path"></h2>
+                        <span id="file-status" class="status-badge"></span>
+                    </div>
+                    
+                    <div class="file-content">
+                        <div class="versions-panel">
+                            <h3>Version History</h3>
+                            <div id="versions-list" class="versions-list">
+                                <div class="loading">Loading versions...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-panel">
+                            <div id="version-detail" class="version-detail">
+                                <p class="hint">Select a version to view its contents</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="diff-view" class="view diff-view" style="display: none;">
+                    <div class="diff-header">
+                        <h2 id="diff-title">Comparing Versions</h2>
+                        <div class="diff-controls">
+                            <div class="diff-mode-toggle">
+                                <button id="diff-mode-unified" class="btn btn-sm btn-mode active">Unified</button>
+                                <button id="diff-mode-split" class="btn btn-sm btn-mode">Side by Side</button>
+                            </div>
+                            <button id="close-diff" class="btn btn-secondary">Close</button>
+                        </div>
+                    </div>
+                    <div class="diff-stats" id="diff-stats"></div>
+                    <div class="diff-content" id="diff-content"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Restore Confirmation Modal -->
+    <div id="restore-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Confirm Restore</h3>
+            <p id="restore-message"></p>
+            <div class="modal-actions">
+                <button id="restore-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="restore-confirm" class="btn btn-danger">Restore</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

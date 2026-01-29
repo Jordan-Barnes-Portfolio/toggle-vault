@@ -1,0 +1,69 @@
+# Toggle Vault Regional Configuration - West US 2
+# Edit the values below to match your environment
+
+# =============================================================================
+# Region and Environment Settings
+# =============================================================================
+
+region: "westus2"
+environment: "prod"
+
+# =============================================================================
+# Azure Resource Settings
+# =============================================================================
+
+azure:
+  # Resource group for Toggle Vault infrastructure
+  resourceGroup: "rg-toggle-vault-westus2"
+  
+  # Storage account containing toggle files (must already exist)
+  storageAccount:
+    name: "sttoggleswestus2"        # CHANGE THIS to your storage account
+    resourceGroup: ""               # Leave empty if same as resourceGroup above
+    container: "toggles"
+    prefix: ""
+
+# =============================================================================
+# Container Registry Settings
+# =============================================================================
+
+container:
+  registry: "acrtogglevault.azurecr.io"  # CHANGE THIS to your ACR
+  image: "toggle-vault"
+  tag: "latest"
+
+# =============================================================================
+# AKS Cluster Settings
+# =============================================================================
+
+aks:
+  name: "aks-toggle-vault"
+  nodeCount: 1
+  nodeSize: "Standard_B2s"
+  kubernetesVersion: "1.28"
+
+# =============================================================================
+# Application Settings
+# =============================================================================
+
+app:
+  syncInterval: "60s"
+  replicas: 1
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+# =============================================================================
+# Tags for Azure Resources
+# =============================================================================
+
+tags:
+  application: "toggle-vault"
+  environment: "prod"
+  costCenter: "platform-team"
+  owner: "platform-team"
+  region: "westus2"

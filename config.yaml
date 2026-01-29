@@ -1,0 +1,57 @@
+# Toggle Vault Configuration
+# Copy this file and customize for your environment
+
+azure:
+  # Azure Storage Account name
+  storage_account: "mystorageaccount"
+  
+  # Container scope - choose ONE of the following options:
+  
+  # Option A: Scan a single container (backward compatible)
+  container: "toggles"
+  
+  # Option B: Scan multiple specific containers
+  # containers:
+  #   - "toggles"
+  #   - "config"
+  #   - "settings"
+  
+  # Option C: Scan ALL containers in the storage account
+  # scan_all_containers: true
+  
+  # Authentication options (use one of the following):
+  
+  # Option 1: Connection string (simplest)
+  connection_string: "${AZURE_STORAGE_CONNECTION_STRING}"
+  
+  # Option 2: SAS token
+  # sas_token: "${AZURE_STORAGE_SAS_TOKEN}"
+  
+  # Option 3: Service Principal
+  # tenant_id: "${AZURE_TENANT_ID}"
+  # client_id: "${AZURE_CLIENT_ID}"
+  # client_secret: "${AZURE_CLIENT_SECRET}"
+  
+  # Option 4: Managed Identity (when running in Azure)
+  # use_managed_identity: true
+  
+  # Optional: only watch files under this prefix/folder
+  prefix: ""
+
+sync:
+  # How often to check for changes
+  interval: 60s
+  
+  # File patterns to watch (glob patterns)
+  patterns:
+    - "*.yaml"
+    - "*.yml"
+
+database:
+  # Path to SQLite database file
+  path: "./toggle-vault.db"
+
+server:
+  # HTTP server settings
+  port: 8080
+  host: "0.0.0.0"

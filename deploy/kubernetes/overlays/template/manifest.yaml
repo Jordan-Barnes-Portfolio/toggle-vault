@@ -1,0 +1,84 @@
+# Toggle Vault Regional Configuration Template
+# Copy this file to a new region directory and fill in the values
+#
+# Example: cp template/manifest.yaml eastus/manifest.yaml
+
+# =============================================================================
+# REQUIRED: Region and Environment Settings
+# =============================================================================
+
+region: "REGION_NAME"           # e.g., eastus, westus2, centralus
+environment: "prod"             # e.g., dev, staging, prod
+
+# =============================================================================
+# REQUIRED: Azure Resource Settings
+# =============================================================================
+
+azure:
+  # Resource group for Toggle Vault infrastructure
+  resourceGroup: "rg-toggle-vault-REGION_NAME"
+  
+  # Storage account containing toggle files (must already exist)
+  storageAccount:
+    name: "STORAGE_ACCOUNT_NAME"
+    resourceGroup: "STORAGE_RG_NAME"  # Leave empty if same as above
+    
+    # Container scope - choose ONE of the following options:
+    
+    # Option A: Single container
+    container: "toggles"
+    
+    # Option B: Multiple specific containers (uncomment to use)
+    # containers:
+    #   - "toggles"
+    #   - "config"
+    
+    # Option C: Scan entire storage account (uncomment to use)
+    # scanAllContainers: true
+    
+    prefix: ""                        # Optional: only watch files under this prefix
+
+# =============================================================================
+# REQUIRED: Container Registry Settings
+# =============================================================================
+
+container:
+  registry: "YOUR_ACR_NAME.azurecr.io"
+  image: "toggle-vault"
+  tag: "latest"
+
+# =============================================================================
+# OPTIONAL: AKS Cluster Settings (defaults shown)
+# =============================================================================
+
+aks:
+  name: "aks-toggle-vault"
+  nodeCount: 1
+  nodeSize: "Standard_B2s"
+  kubernetesVersion: "1.28"
+
+# =============================================================================
+# OPTIONAL: Application Settings (defaults shown)
+# =============================================================================
+
+app:
+  syncInterval: "60s"
+  replicas: 1
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+# =============================================================================
+# OPTIONAL: Tags for Azure Resources
+# =============================================================================
+
+tags:
+  application: "toggle-vault"
+  environment: "prod"
+  costCenter: ""
+  owner: ""
+  region: "REGION_NAME"

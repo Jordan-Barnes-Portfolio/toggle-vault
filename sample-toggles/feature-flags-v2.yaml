@@ -1,0 +1,32 @@
+# Feature Flags Configuration
+# Toggle Vault Demo - Updated
+
+features:
+  dark_mode:
+    enabled: true
+    description: "Enable dark mode UI theme"
+    rollout_percentage: 100
+    
+  new_dashboard:
+    enabled: true
+    description: "New dashboard redesign - NOW ENABLED"
+    rollout_percentage: 25
+    
+  api_v2:
+    enabled: true
+    description: "Enable API v2 endpoints"
+    rollout_percentage: 75
+    allowed_users:
+      - admin@example.com
+      - beta@example.com
+      - developer@example.com
+
+  maintenance_mode:
+    enabled: false
+    description: "Put system in maintenance mode"
+    message: "System is under maintenance"
+    
+  experimental_feature:
+    enabled: false
+    description: "New experimental feature for testing"
+    rollout_percentage: 0

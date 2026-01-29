@@ -1,0 +1,24 @@
+# Application Settings
+# Toggle Vault Demo
+
+settings:
+  app_name: "Toggle Vault Demo"
+  environment: "production"
+  
+  timeouts:
+    request_timeout_ms: 30000
+    connection_timeout_ms: 5000
+    
+  limits:
+    max_file_size_mb: 10
+    max_requests_per_minute: 100
+    
+  logging:
+    level: "info"
+    format: "json"
+    include_timestamps: true
+    
+  cache:
+    enabled: true
+    ttl_seconds: 300
+    max_entries: 1000

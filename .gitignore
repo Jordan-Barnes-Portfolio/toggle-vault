@@ -1,6 +1,6 @@
-# Binaries
-toggle-vault
-toggle-vault.exe
+# Binaries (in root only)
+/toggle-vault
+/toggle-vault.exe
 *.exe
 *.dll
 *.so

@@ -4,7 +4,7 @@
 IMAGE_NAME := toggle-vault
 IMAGE_TAG := latest
 IMAGE_TAR := toggle-vault-image.tar
-AIRGAP_PACKAGE := toggle-vault-airgap.tar.gz
+AIRGAP_PACKAGE := toggle-vault-airgap-package.tar.gz
 
 .PHONY: all build package clean help
 

@@ -6,15 +6,25 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app
 
-# Copy go mod file first
-COPY go.mod ./
+# Copy go mod files first for better layer caching
+COPY go.mod go.sum* ./
+
+# Copy vendor directory if it exists (for airgap builds)
+COPY vendor* ./vendor/
 
 # Copy source code
 COPY . .
 
-# Download dependencies and build
-RUN go mod tidy && go mod download
-RUN CGO_ENABLED=1 GOOS=linux go build -o toggle-vault ./cmd/toggle-vault
+# Download dependencies only if not vendored, then build
+# Uses -mod=vendor if vendor exists, otherwise downloads
+RUN if [ -d "vendor" ] && [ -n "$(ls -A vendor 2>/dev/null)" ]; then \
+        echo "Building with vendored dependencies..." && \
+        CGO_ENABLED=1 GOOS=linux go build -mod=vendor -o toggle-vault ./cmd/toggle-vault; \
+    else \
+        echo "Downloading dependencies..." && \
+        go mod tidy && go mod download && \
+        CGO_ENABLED=1 GOOS=linux go build -o toggle-vault ./cmd/toggle-vault; \
+    fi
 
 # Runtime stage
 FROM alpine:3.19

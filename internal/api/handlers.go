@@ -221,7 +221,7 @@ func (s *Server) handleRestore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Upload the content back to blob storage
-	// Path is in format "container/blobpath"
+	// Path is in format "storageaccount/container/blobpath"
 	if err := s.blobClient.UploadBlobByFullPath(r.Context(), path, []byte(version.Content)); err != nil {
 		log.Printf("Error restoring blob: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to restore file")

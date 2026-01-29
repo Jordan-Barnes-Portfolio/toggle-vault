@@ -113,7 +113,7 @@ func (s *Syncer) handleNewFile(ctx context.Context, blobInfo blob.BlobInfo) erro
 	log.Printf("New file detected: %s", blobInfo.FullPath)
 
 	// Download the content
-	blobContent, err := s.blobClient.GetBlob(ctx, blobInfo.Container, blobInfo.Path)
+	blobContent, err := s.blobClient.GetBlob(ctx, blobInfo.StorageAccount, blobInfo.Container, blobInfo.Path)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (s *Syncer) handleNewFile(ctx context.Context, blobInfo blob.BlobInfo) erro
 // handleModifiedFile processes a file that may have been modified
 func (s *Syncer) handleModifiedFile(ctx context.Context, blobInfo blob.BlobInfo, existingFile *store.File) error {
 	// Download the content to check if it actually changed
-	blobContent, err := s.blobClient.GetBlob(ctx, blobInfo.Container, blobInfo.Path)
+	blobContent, err := s.blobClient.GetBlob(ctx, blobInfo.StorageAccount, blobInfo.Container, blobInfo.Path)
 	if err != nil {
 		return err
 	}

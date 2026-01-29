@@ -14,6 +14,8 @@ A Git-blame style version control system for YAML toggle files stored in Azure B
 - **Azure Native**: Uses Workload Identity for secure, secretless authentication
 
 > **New to Toggle Vault?** See the [Step-by-Step Deployment Guide](DEPLOYMENT.md) for detailed instructions.
+>
+> **Deploying to an airgapped environment?** See the [Airgap Deployment Guide](AIRGAP_DEPLOYMENT.md).
 
 ## Quick Start
 

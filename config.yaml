@@ -2,26 +2,48 @@
 # Copy this file and customize for your environment
 
 azure:
-  # Azure Storage Account name
+  # ===========================================================================
+  # STORAGE ACCOUNTS - Choose one of the following options:
+  # ===========================================================================
+  
+  # OPTION A: Multiple storage accounts (recommended for multi-account/cross-subscription)
+  # storage_accounts:
+  #   - name: "storageaccount1"
+  #     subscription_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # Optional: for cross-subscription
+  #     resource_group: "rg-storage-1"
+  #     scan_all_containers: true
+  #     prefix: ""
+  #   
+  #   - name: "storageaccount2"
+  #     subscription_id: "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+  #     resource_group: "rg-storage-2"
+  #     container: "toggles"  # Watch specific container
+  #     prefix: "config/"     # Only files with this prefix
+  #   
+  #   - name: "storageaccount3"
+  #     resource_group: "rg-storage-3"
+  #     containers:           # Watch multiple specific containers
+  #       - "toggles"
+  #       - "settings"
+  
+  # OPTION B: Single storage account (legacy, still supported)
   storage_account: "mystorageaccount"
   
-  # Container scope - choose ONE of the following options:
-  
-  # Option A: Scan a single container (backward compatible)
-  container: "toggles"
-  
-  # Option B: Scan multiple specific containers
-  # containers:
+  # Container scope for single storage account:
+  container: "toggles"              # Single container
+  # containers:                     # OR multiple containers
   #   - "toggles"
   #   - "config"
-  #   - "settings"
+  # scan_all_containers: true       # OR scan all containers
   
-  # Option C: Scan ALL containers in the storage account
-  # scan_all_containers: true
+  # Optional: only watch files under this prefix/folder
+  prefix: ""
   
-  # Authentication options (use one of the following):
+  # ===========================================================================
+  # AUTHENTICATION - Choose one method
+  # ===========================================================================
   
-  # Option 1: Connection string (simplest)
+  # Option 1: Connection string (simplest, for local development)
   connection_string: "${AZURE_STORAGE_CONNECTION_STRING}"
   
   # Option 2: SAS token
@@ -32,11 +54,8 @@ azure:
   # client_id: "${AZURE_CLIENT_ID}"
   # client_secret: "${AZURE_CLIENT_SECRET}"
   
-  # Option 4: Managed Identity (when running in Azure)
+  # Option 4: Managed Identity (recommended for Azure deployments)
   # use_managed_identity: true
-  
-  # Optional: only watch files under this prefix/folder
-  prefix: ""
 
 sync:
   # How often to check for changes

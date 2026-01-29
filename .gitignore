@@ -44,3 +44,4 @@ Thumbs.db
 .env.local
 .env.*.local
 toggle-vault-image.tar
+toggle-vault-airgap.tar.gz

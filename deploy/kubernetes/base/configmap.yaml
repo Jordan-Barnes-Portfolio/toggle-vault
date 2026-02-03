@@ -7,11 +7,19 @@ metadata:
     app.kubernetes.io/name: toggle-vault
     app.kubernetes.io/component: config
 data:
+  # Cloud configuration for init container
+  azure-cloud: "${AZURE_CLOUD}"
+  azure-region: "${AZURE_REGION}"
+  
   config.yaml: |
     # Toggle Vault Configuration
     # Values are populated from regional manifest.yaml
     
     azure:
+      # Cloud environment configuration
+      cloud: "${AZURE_CLOUD}"
+      region: "${AZURE_REGION}"
+      
       storage_account: "${STORAGE_ACCOUNT_NAME}"
       
       # Container scope (one of: container, containers, or scan_all_containers)

@@ -24,6 +24,53 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
+      
+      # Init container for USSec/Government cloud initialization
+      # Fetches CA certificates and configures Azure CLI for the target cloud
+      initContainers:
+        - name: init-cloud
+          image: "${CONTAINER_REGISTRY}/toggle-vault-init:${IMAGE_TAG}"
+          imagePullPolicy: Always
+          env:
+            - name: AZURE_CLOUD
+              valueFrom:
+                configMapKeyRef:
+                  name: toggle-vault-config
+                  key: azure-cloud
+                  optional: true
+            - name: AZURE_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: toggle-vault-config
+                  key: azure-region
+                  optional: true
+            - name: CONFIG_FILE
+              value: "/config/config.yaml"
+            - name: CERT_OUTPUT_DIR
+              value: "/shared/certs"
+            - name: AZURE_CONFIG_DIR
+              value: "/shared/azure"
+          volumeMounts:
+            - name: config
+              mountPath: /config/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: shared-data
+              mountPath: /shared
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      
       containers:
         - name: toggle-vault
           image: "${CONTAINER_REGISTRY}/toggle-vault:${IMAGE_TAG}"
@@ -37,6 +84,28 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.annotations['azure.workload.identity/client-id']
+            # Cloud configuration from init container
+            - name: AZURE_CLOUD
+              valueFrom:
+                configMapKeyRef:
+                  name: toggle-vault-config
+                  key: azure-cloud
+                  optional: true
+            - name: AZURE_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: toggle-vault-config
+                  key: azure-region
+                  optional: true
+            # CA certificate paths (populated by init container)
+            - name: REQUESTS_CA_BUNDLE
+              value: "/app/certs/ca-bundle.crt"
+            - name: SSL_CERT_FILE
+              value: "/app/certs/ca-bundle.crt"
+            - name: CURL_CA_BUNDLE
+              value: "/app/certs/ca-bundle.crt"
+            - name: AZURE_CONFIG_DIR
+              value: "/app/azure-config"
           volumeMounts:
             - name: config
               mountPath: /app/config.yaml
@@ -44,6 +113,15 @@ spec:
               readOnly: true
             - name: data
               mountPath: /data
+            # Mount shared volumes from init container
+            - name: shared-data
+              mountPath: /app/certs
+              subPath: certs
+              readOnly: true
+            - name: shared-data
+              mountPath: /app/azure-config
+              subPath: azure
+              readOnly: true
           resources:
             requests:
               cpu: 100m
@@ -80,3 +158,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: toggle-vault-data
+        # Shared volume for init container to pass certs/config to main container
+        - name: shared-data
+          emptyDir: {}

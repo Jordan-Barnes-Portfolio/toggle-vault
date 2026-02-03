@@ -8,6 +8,8 @@ class ToggleVault {
         this.versions = [];
         this.currentDiff = null;
         this.diffMode = 'unified'; // 'unified' or 'split'
+        this.compareMode = false; // Whether compare mode is active
+        this.compareVersions = { from: null, to: null }; // Selected versions for comparison
         
         this.initElements();
         this.initEventListeners();
@@ -40,6 +42,14 @@ class ToggleVault {
         this.diffModeUnifiedBtn = document.getElementById('diff-mode-unified');
         this.diffModeSplitBtn = document.getElementById('diff-mode-split');
         
+        // Compare mode elements
+        this.compareModeBtn = document.getElementById('compare-mode-btn');
+        this.compareControls = document.getElementById('compare-controls');
+        this.compareFromSelect = document.getElementById('compare-from');
+        this.compareToSelect = document.getElementById('compare-to');
+        this.runCompareBtn = document.getElementById('run-compare-btn');
+        this.cancelCompareBtn = document.getElementById('cancel-compare-btn');
+        
         // Modal elements
         this.restoreModal = document.getElementById('restore-modal');
         this.restoreMessage = document.getElementById('restore-message');
@@ -63,6 +73,11 @@ class ToggleVault {
         
         // Modal
         this.restoreCancelBtn.addEventListener('click', () => this.closeRestoreModal());
+        
+        // Compare mode
+        this.compareModeBtn.addEventListener('click', () => this.toggleCompareMode());
+        this.runCompareBtn.addEventListener('click', () => this.runComparison());
+        this.cancelCompareBtn.addEventListener('click', () => this.toggleCompareMode(false));
     }
     
     setDiffMode(mode) {
@@ -178,7 +193,7 @@ class ToggleVault {
                 <div class="version-actions">
                     <button class="btn btn-sm btn-secondary view-btn" data-id="${version.id}">View</button>
                     ${index < this.versions.length - 1 ? 
-                        `<button class="btn btn-sm btn-secondary diff-btn" data-id="${version.id}" data-prev-id="${this.versions[index + 1].id}">Diff</button>` : 
+                        `<button class="btn btn-sm btn-secondary diff-prev-btn" data-id="${version.id}" data-prev-id="${this.versions[index + 1].id}" title="Compare with previous">↔ Prev</button>` : 
                         ''}
                     ${version.change_type !== 'deleted' ? 
                         `<button class="btn btn-sm btn-primary restore-btn" data-id="${version.id}">Restore</button>` : 
@@ -203,7 +218,7 @@ class ToggleVault {
             });
         });
         
-        this.versionsList.querySelectorAll('.diff-btn').forEach(btn => {
+        this.versionsList.querySelectorAll('.diff-prev-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = parseInt(btn.dataset.id);
                 const prevId = parseInt(btn.dataset.prevId);
@@ -217,6 +232,11 @@ class ToggleVault {
                 this.showRestoreModal(id);
             });
         });
+        
+        // Update compare dropdowns if in compare mode
+        if (this.compareMode) {
+            this.updateCompareDropdowns();
+        }
     }
     
     async selectVersion(id) {
@@ -378,6 +398,60 @@ class ToggleVault {
     closeDiff() {
         this.diffView.style.display = 'none';
         this.fileView.style.display = 'flex';
+    }
+    
+    // Compare mode methods
+    toggleCompareMode(enable = null) {
+        this.compareMode = enable !== null ? enable : !this.compareMode;
+        this.compareVersions = { from: null, to: null };
+        
+        // Toggle UI visibility
+        this.compareModeBtn.classList.toggle('active', this.compareMode);
+        this.compareControls.style.display = this.compareMode ? 'flex' : 'none';
+        
+        if (this.compareMode) {
+            this.updateCompareDropdowns();
+        }
+    }
+    
+    updateCompareDropdowns() {
+        const options = this.versions.map(v => 
+            `<option value="${v.id}">v${v.id} - ${v.change_type} (${this.formatDate(v.captured_at)})</option>`
+        ).join('');
+        
+        // "From" is the older version (base)
+        this.compareFromSelect.innerHTML = `<option value="">Select base version...</option>${options}`;
+        // "To" is the newer version (target)
+        this.compareToSelect.innerHTML = `<option value="">Select target version...</option>${options}`;
+        
+        // Restore previous selections if any
+        if (this.compareVersions.from) {
+            this.compareFromSelect.value = this.compareVersions.from;
+        }
+        if (this.compareVersions.to) {
+            this.compareToSelect.value = this.compareVersions.to;
+        }
+    }
+    
+    runComparison() {
+        const fromId = parseInt(this.compareFromSelect.value);
+        const toId = parseInt(this.compareToSelect.value);
+        
+        if (!fromId || !toId) {
+            alert('Please select both versions to compare');
+            return;
+        }
+        
+        if (fromId === toId) {
+            alert('Please select two different versions');
+            return;
+        }
+        
+        // Store selections
+        this.compareVersions = { from: fromId, to: toId };
+        
+        // Run diff (from = old/base, to = new/target)
+        this.showDiff(fromId, toId);
     }
     
     showRestoreModal(versionId) {

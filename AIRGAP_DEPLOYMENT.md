@@ -5,7 +5,8 @@ This guide walks you through deploying Toggle Vault in an airgapped environment.
 ## What You Need
 
 You should have received these files:
-- `toggle-vault-image.tar` - The Docker image
+- `toggle-vault-image.tar` - The main application Docker image
+- `toggle-vault-init-image.tar` - The init container Docker image (for CA cert/cloud initialization)
 - `AIRGAP_DEPLOYMENT.md` - This guide
 - `airgap-deploy.sh` - The deployment script
 

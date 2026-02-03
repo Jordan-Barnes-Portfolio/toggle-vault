@@ -1,0 +1,93 @@
+# Toggle Vault Regional Configuration - USSec
+# Configuration for Azure US Secret (USSec) sovereign cloud
+# Edit the values below to match your environment
+
+# =============================================================================
+# Region and Environment Settings
+# =============================================================================
+
+region: "usseceast"
+environment: "prod"
+
+# =============================================================================
+# Azure Cloud Configuration - USSec Specific
+# =============================================================================
+
+cloud:
+  # Azure US Secret cloud type
+  type: "USSec"
+  # USSec region for regional CA certificate endpoints
+  # Available regions: usseceast, ussecwest, ussecwestcentral
+  region: "usseceast"
+
+# =============================================================================
+# Azure Resource Settings
+# =============================================================================
+
+azure:
+  # Resource group for Toggle Vault infrastructure
+  resourceGroup: "rg-toggle-vault-usseceast"
+  
+  # Storage account containing toggle files (must already exist)
+  storageAccount:
+    name: "sttogglesusseceast"
+    resourceGroup: "rg-toggle-vault-usseceast"
+    container: "toggles"
+    prefix: ""
+    # USSec storage suffix
+    suffix: "blob.core.microsoft.scloud"
+
+# =============================================================================
+# Container Registry Settings
+# =============================================================================
+
+container:
+  # USSec Azure Container Registry
+  registry: "acrtogglevault.azurecr.microsoft.scloud"
+  image: "toggle-vault"
+  initImage: "toggle-vault-init"
+  tag: "v1"
+
+# =============================================================================
+# AKS Cluster Settings
+# =============================================================================
+
+aks:
+  name: "aks-toggle-vault"
+  nodeCount: 1
+  nodeSize: "Standard_D2s_v3"
+  kubernetesVersion: "1.28"
+
+# =============================================================================
+# Application Settings
+# =============================================================================
+
+app:
+  syncInterval: "60s"
+  replicas: 1
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+# =============================================================================
+# USSec Cloud Endpoints (for reference, auto-configured by init container)
+# =============================================================================
+
+endpoints:
+  management: "https://management.azure.microsoft.scloud"
+  activeDirectory: "https://login.microsoftonline.microsoft.scloud"
+  storage: "core.microsoft.scloud"
+  keyVault: ".vault.microsoft.scloud"
+  # PKI issuer endpoint for CA certificates
+  caCerts: "https://issuer.pki.azure.microsoft.scloud/dsms/issuercertificates?getissuersv3&rxme"
+
+# =============================================================================
+# Tags for Azure Resources
+# =============================================================================
+
+tags:
+  application: "toggle-vault"

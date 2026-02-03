@@ -46,6 +46,30 @@
                         <span id="file-status" class="status-badge"></span>
                     </div>
                     
+                    <!-- Compare Mode Controls -->
+                    <div class="compare-bar">
+                        <button id="compare-mode-btn" class="btn btn-secondary">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 4px;">
+                                <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+                                <path d="M8 11a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 8 11zm0 2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 8 13zm-3-6.5a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-1 0V7a.5.5 0 0 1 .5-.5z"/>
+                            </svg>
+                            Compare Versions
+                        </button>
+                        <div id="compare-controls" class="compare-controls" style="display: none;">
+                            <div class="compare-select-group">
+                                <label>From (base):</label>
+                                <select id="compare-from" class="compare-select"></select>
+                            </div>
+                            <span class="compare-arrow">→</span>
+                            <div class="compare-select-group">
+                                <label>To (target):</label>
+                                <select id="compare-to" class="compare-select"></select>
+                            </div>
+                            <button id="run-compare-btn" class="btn btn-primary">Compare</button>
+                            <button id="cancel-compare-btn" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                    
                     <div class="file-content">
                         <div class="versions-panel">
                             <h3>Version History</h3>

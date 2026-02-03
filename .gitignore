@@ -43,5 +43,13 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Build artifacts
+dist/
 toggle-vault-image.tar
+toggle-vault-init-image.tar
+toggle-vault-airgap-package.tar.gz
 toggle-vault-airgap.tar.gz
+*.tar
+*.tar.gz
+.staging/

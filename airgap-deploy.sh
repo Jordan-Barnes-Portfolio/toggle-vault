@@ -27,6 +27,7 @@ NODE_COUNT=1
 K8S_VERSION="1.32"
 IMAGE_TAG="latest"
 IMAGE_TAR="toggle-vault-image.tar"
+INIT_IMAGE_TAR="toggle-vault-init-image.tar"
 SYNC_INTERVAL="60s"
 DRY_RUN=false
 SKIP_IMAGE_PUSH=false
@@ -81,7 +82,8 @@ OPTIONAL:
     --cluster-name        AKS cluster name (default: aks-toggle-vault)
     --node-size           VM size for nodes (default: Standard_B2s)
     --node-count          Number of nodes (default: 1)
-    --image-tar           Path to Docker image tar (default: toggle-vault-image.tar)
+    --image-tar           Path to main Docker image tar (default: toggle-vault-image.tar)
+    --init-image-tar      Path to init container image tar (default: toggle-vault-init-image.tar)
     --image-tag           Docker image tag (default: latest)
     --sync-interval       Sync interval (default: 60s)
     --skip-image-push     Skip loading/pushing image (use if already in ACR)
@@ -153,6 +155,7 @@ parse_args() {
             --node-size)        NODE_SIZE="$2"; shift 2 ;;
             --node-count)       NODE_COUNT="$2"; shift 2 ;;
             --image-tar)        IMAGE_TAR="$2"; shift 2 ;;
+            --init-image-tar)   INIT_IMAGE_TAR="$2"; shift 2 ;;
             --image-tag)        IMAGE_TAG="$2"; shift 2 ;;
             --sync-interval)    SYNC_INTERVAL="$2"; shift 2 ;;
             --skip-image-push)  SKIP_IMAGE_PUSH=true; shift ;;
@@ -264,6 +267,14 @@ check_prerequisites() {
             exit 1
         fi
         log_success "Image tar found: $IMAGE_TAR"
+        
+        # Check init image tar exists
+        if [[ ! -f "$INIT_IMAGE_TAR" ]]; then
+            log_error "Init container image tar not found: $INIT_IMAGE_TAR"
+            log_error "Place toggle-vault-init-image.tar in the current directory or specify --init-image-tar <path>"
+            exit 1
+        fi
+        log_success "Init image tar found: $INIT_IMAGE_TAR"
     fi
     
     log_success "All prerequisites met"
@@ -347,32 +358,53 @@ push_image() {
     if [[ "$SKIP_IMAGE_PUSH" == true ]]; then
         log_info "Skipping image push (--skip-image-push specified)"
         
-        # Verify image exists in ACR
+        # Verify images exist in ACR
         if ! az acr repository show --name "$ACR_NAME" --repository toggle-vault >/dev/null 2>&1; then
             log_error "Image 'toggle-vault' not found in ACR '$ACR_NAME'"
             log_error "Remove --skip-image-push to load and push the image"
             exit 1
         fi
         log_success "Image 'toggle-vault' found in ACR"
+        
+        if ! az acr repository show --name "$ACR_NAME" --repository toggle-vault-init >/dev/null 2>&1; then
+            log_error "Image 'toggle-vault-init' not found in ACR '$ACR_NAME'"
+            log_error "Remove --skip-image-push to load and push the image"
+            exit 1
+        fi
+        log_success "Image 'toggle-vault-init' found in ACR"
         return 0
     fi
     
-    log_info "Loading Docker image from: $IMAGE_TAR"
-    docker load -i "$IMAGE_TAR"
-    log_success "Image loaded"
-    
     log_info "Logging into ACR: $ACR_NAME"
     az acr login --name "$ACR_NAME"
+    
+    # Load and push main image
+    log_info "Loading main Docker image from: $IMAGE_TAR"
+    docker load -i "$IMAGE_TAR"
+    log_success "Main image loaded"
     
     local FULL_IMAGE="${ACR_NAME}.azurecr.io/toggle-vault:${IMAGE_TAG}"
     
     log_info "Tagging image as: $FULL_IMAGE"
     docker tag toggle-vault:latest "$FULL_IMAGE"
     
-    log_info "Pushing image to ACR..."
+    log_info "Pushing main image to ACR..."
     docker push "$FULL_IMAGE"
+    log_success "Main image pushed to ACR"
     
-    log_success "Image pushed to ACR"
+    # Load and push init image
+    log_info "Loading init container image from: $INIT_IMAGE_TAR"
+    docker load -i "$INIT_IMAGE_TAR"
+    log_success "Init image loaded"
+    
+    local FULL_INIT_IMAGE="${ACR_NAME}.azurecr.io/toggle-vault-init:${IMAGE_TAG}"
+    
+    log_info "Tagging init image as: $FULL_INIT_IMAGE"
+    docker tag toggle-vault-init:latest "$FULL_INIT_IMAGE"
+    
+    log_info "Pushing init image to ACR..."
+    docker push "$FULL_INIT_IMAGE"
+    log_success "Init image pushed to ACR"
 }
 
 #==============================================================================
@@ -390,8 +422,9 @@ print_config() {
     echo "AKS Cluster:           ${CLUSTER_NAME}-${REGION}"
     echo ""
     echo "Container Registry:    ${ACR_NAME}.azurecr.io"
-    echo "Image Tar:             ${IMAGE_TAR}"
-    echo "Image Tag:             toggle-vault:${IMAGE_TAG}"
+    echo "Main Image Tar:        ${IMAGE_TAR}"
+    echo "Init Image Tar:        ${INIT_IMAGE_TAR}"
+    echo "Image Tag:             ${IMAGE_TAG}"
     if [[ "$SKIP_IMAGE_PUSH" == true ]]; then
         echo "                       (skipping push - using existing)"
     fi
@@ -677,6 +710,38 @@ spec:
         azure.workload.identity/use: "true"
     spec:
       serviceAccountName: toggle-vault-sa
+      
+      # Init container for cloud initialization (CA certs, cloud config)
+      initContainers:
+        - name: init-cloud
+          image: ${ACR_NAME}.azurecr.io/toggle-vault-init:${IMAGE_TAG}
+          imagePullPolicy: Always
+          env:
+            - name: AZURE_CLOUD
+              value: "AzureUSGovernment"
+            - name: AZURE_REGION
+              value: "${REGION}"
+            - name: CONFIG_FILE
+              value: "/config/config.yaml"
+            - name: CERT_OUTPUT_DIR
+              value: "/shared/certs"
+            - name: AZURE_CONFIG_DIR
+              value: "/shared/azure"
+          volumeMounts:
+            - name: config
+              mountPath: /config/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: shared-data
+              mountPath: /shared
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+      
       containers:
         - name: toggle-vault
           image: ${FULL_IMAGE}
@@ -684,12 +749,29 @@ spec:
           ports:
             - containerPort: 8080
               name: http
+          env:
+            - name: REQUESTS_CA_BUNDLE
+              value: "/app/certs/ca-bundle.crt"
+            - name: SSL_CERT_FILE
+              value: "/app/certs/ca-bundle.crt"
+            - name: CURL_CA_BUNDLE
+              value: "/app/certs/ca-bundle.crt"
+            - name: AZURE_CONFIG_DIR
+              value: "/app/azure-config"
           volumeMounts:
             - name: config
               mountPath: /app/config.yaml
               subPath: config.yaml
             - name: data
               mountPath: /data
+            - name: shared-data
+              mountPath: /app/certs
+              subPath: certs
+              readOnly: true
+            - name: shared-data
+              mountPath: /app/azure-config
+              subPath: azure
+              readOnly: true
           resources:
             requests:
               cpu: "100m"
@@ -716,6 +798,8 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: toggle-vault-data
+        - name: shared-data
+          emptyDir: {}
 EOF
 
     # Create Service

@@ -29,8 +29,26 @@ RUN if [ -d "vendor" ] && [ -n "$(ls -A vendor 2>/dev/null)" ]; then \
 # Runtime stage
 FROM alpine:3.19
 
-# Install CA certificates for HTTPS and SQLite runtime
-RUN apk --no-cache add ca-certificates
+# Install CA certificates, Azure CLI, and required tools for USSec/Government clouds
+RUN apk --no-cache add \
+    ca-certificates \
+    curl \
+    bash \
+    jq \
+    python3 \
+    py3-pip \
+    openssl \
+    && pip3 install --no-cache-dir --break-system-packages azure-cli \
+    && az --version
+
+# Create directories for cloud-injected certificates
+RUN mkdir -p /app/certs /app/azure-config
+
+# Environment variables for CA certificate bundles (populated by init container)
+ENV REQUESTS_CA_BUNDLE=/app/certs/ca-bundle.crt
+ENV SSL_CERT_FILE=/app/certs/ca-bundle.crt
+ENV CURL_CA_BUNDLE=/app/certs/ca-bundle.crt
+ENV AZURE_CONFIG_DIR=/app/azure-config
 
 WORKDIR /app
 

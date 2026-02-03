@@ -1,0 +1,33 @@
+# Init Container for Toggle Vault
+# Handles USSec/Government cloud initialization:
+# - Fetches and installs CA certificates from Azure wireserver
+# - Configures environment for the appropriate cloud
+#
+# NOTE: Uses alpine base image for airgap compatibility.
+# Azure CLI is installed in the main container, not the init container.
+
+FROM alpine:3.19
+
+# Install required tools for CA certificate fetching and parsing
+RUN apk add --no-cache \
+    ca-certificates \
+    curl \
+    openssl \
+    jq \
+    bash \
+    sed \
+    grep
+
+# Create directories for certificates and config
+RUN mkdir -p /certs /config /shared
+
+# Copy initialization script
+COPY scripts/init-cloud.sh /init-cloud.sh
+RUN chmod +x /init-cloud.sh
+
+# The init container will:
+# 1. Fetch CA certificates from Azure wireserver (168.63.129.16)
+# 2. Parse and install certificates to shared volume
+# 3. Generate cloud configuration for main container
+
+ENTRYPOINT ["/init-cloud.sh"]

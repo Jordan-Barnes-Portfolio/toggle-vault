@@ -3,6 +3,26 @@
 
 azure:
   # ===========================================================================
+  # CLOUD ENVIRONMENT - Configure for your Azure cloud
+  # ===========================================================================
+  
+  # Azure cloud type (required for sovereign/government clouds)
+  # Options: AzureCloud, AzureUSGovernment, AzureUSSecret (USSec), AzureUSNat
+  cloud: "AzureUSGovernment"
+  
+  # Azure region for regional CA certificate endpoints
+  # USSec regions: usseceast, ussecwest, ussecwestcentral
+  # USNat regions: usnateast, usnatwest
+  # USGov regions: usgovvirginia, usgovarizona, usgovtexas
+  region: "usgovvirginia"
+  
+  # Cloud-specific endpoints (auto-configured based on cloud type, override if needed)
+  # endpoints:
+  #   management: "https://management.usgovcloudapi.net"
+  #   storage_suffix: "blob.core.usgovcloudapi.net"
+  #   ca_certs: "https://cacerts.microsoft.scloud"  # For USSec
+  
+  # ===========================================================================
   # STORAGE ACCOUNTS - Choose one of the following options:
   # ===========================================================================
   
@@ -44,7 +64,7 @@ azure:
   # ===========================================================================
   
   # Option 1: Connection string (simplest, for local development)
-  connection_string: "${AZURE_STORAGE_CONNECTION_STRING}"
+  # connection_string: "${AZURE_STORAGE_CONNECTION_STRING}"
   
   # Option 2: SAS token
   # sas_token: "${AZURE_STORAGE_SAS_TOKEN}"
@@ -55,7 +75,7 @@ azure:
   # client_secret: "${AZURE_CLIENT_SECRET}"
   
   # Option 4: Managed Identity (recommended for Azure deployments)
-  # use_managed_identity: true
+  use_managed_identity: true
 
 sync:
   # How often to check for changes

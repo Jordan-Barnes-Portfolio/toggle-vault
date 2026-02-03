@@ -9,6 +9,16 @@ region: "eastus"
 environment: "prod"
 
 # =============================================================================
+# Azure Cloud Configuration
+# =============================================================================
+
+cloud:
+  # Azure cloud type: AzureCloud, AzureUSGovernment, AzureUSSecret, AzureUSNat
+  type: "AzureUSGovernment"
+  # Region for cloud-specific endpoints and CA certificates
+  region: "usgovvirginia"
+
+# =============================================================================
 # Azure Resource Settings
 # =============================================================================
 

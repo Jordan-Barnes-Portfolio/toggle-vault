@@ -31,6 +31,7 @@ INIT_IMAGE_TAR="toggle-vault-init-image.tar"
 SYNC_INTERVAL="60s"
 DRY_RUN=false
 SKIP_IMAGE_PUSH=false
+RBAC_MODE="readwrite"
 
 # Storage accounts array - each entry is "name:subscription:resource_group:container:prefix"
 # subscription, container, and prefix are optional
@@ -86,6 +87,9 @@ OPTIONAL:
     --init-image-tar      Path to init container image tar (default: toggle-vault-init-image.tar)
     --image-tag           Docker image tag (default: latest)
     --sync-interval       Sync interval (default: 60s)
+    --rbac                RBAC mode: 'readwrite' (default) or 'readonly'
+                          - readwrite: Storage Blob Data Contributor (can restore files)
+                          - readonly: Storage Blob Data Reader (view only)
     --skip-image-push     Skip loading/pushing image (use if already in ACR)
     --dry-run             Show what would be created without creating it
     --help                Show this help message
@@ -158,6 +162,7 @@ parse_args() {
             --init-image-tar)   INIT_IMAGE_TAR="$2"; shift 2 ;;
             --image-tag)        IMAGE_TAG="$2"; shift 2 ;;
             --sync-interval)    SYNC_INTERVAL="$2"; shift 2 ;;
+            --rbac)             RBAC_MODE="$2"; shift 2 ;;
             --skip-image-push)  SKIP_IMAGE_PUSH=true; shift ;;
             --dry-run)          DRY_RUN=true; shift ;;
             --help)             show_help ;;
@@ -497,8 +502,18 @@ create_managed_identity() {
     
     log_info "Managed Identity Client ID: $IDENTITY_CLIENT_ID"
     
-    # Assign Storage Blob Data Contributor role for each storage account
-    log_info "Assigning Storage Blob Data Contributor role on storage account(s)..."
+    # Determine RBAC role based on mode
+    local RBAC_ROLE
+    if [[ "$RBAC_MODE" == "readonly" ]]; then
+        RBAC_ROLE="Storage Blob Data Reader"
+        log_info "RBAC mode: readonly (restore functionality will be disabled)"
+    else
+        RBAC_ROLE="Storage Blob Data Contributor"
+        log_info "RBAC mode: readwrite (full access including restore)"
+    fi
+    
+    # Assign storage role for each storage account
+    log_info "Assigning $RBAC_ROLE role on storage account(s)..."
     
     for sa in "${STORAGE_ACCOUNTS[@]}"; do
         parse_storage_account "$sa"
@@ -522,7 +537,7 @@ create_managed_identity() {
         
         # Create role assignment (may be cross-subscription)
         az role assignment create \
-            --role "Storage Blob Data Contributor" \
+            --role "$RBAC_ROLE" \
             --assignee-object-id "$IDENTITY_PRINCIPAL_ID" \
             --assignee-principal-type ServicePrincipal \
             --scope "$STORAGE_ACCOUNT_ID" \
@@ -535,29 +550,45 @@ create_managed_identity() {
 }
 
 #==============================================================================
-# Create AKS Cluster
+# Create or Update AKS Cluster
 #==============================================================================
 
 create_aks_cluster() {
     local AKS_NAME="${CLUSTER_NAME}-${REGION}"
     
-    log_info "Creating AKS cluster: $AKS_NAME (this may take 5-10 minutes)..."
-    
-    az aks create \
-        --name "$AKS_NAME" \
-        --resource-group "$RESOURCE_GROUP" \
-        --location "$REGION" \
-        --node-count "$NODE_COUNT" \
-        --node-vm-size "$NODE_SIZE" \
-        --kubernetes-version "$K8S_VERSION" \
-        --enable-oidc-issuer \
-        --enable-workload-identity \
-        --generate-ssh-keys \
-        --attach-acr "$ACR_NAME" \
-        --tags application=toggle-vault \
-        --output none
-    
-    log_success "AKS cluster created"
+    # Check if cluster already exists
+    if az aks show --name "$AKS_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+        log_info "AKS cluster '$AKS_NAME' already exists. Updating..."
+        
+        az aks update \
+            --name "$AKS_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --enable-oidc-issuer \
+            --enable-workload-identity \
+            --attach-acr "$ACR_NAME" \
+            --tags application=toggle-vault \
+            --output none
+        
+        log_success "AKS cluster updated"
+    else
+        log_info "Creating AKS cluster: $AKS_NAME (this may take 5-10 minutes)..."
+        
+        az aks create \
+            --name "$AKS_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --location "$REGION" \
+            --node-count "$NODE_COUNT" \
+            --node-vm-size "$NODE_SIZE" \
+            --kubernetes-version "$K8S_VERSION" \
+            --enable-oidc-issuer \
+            --enable-workload-identity \
+            --generate-ssh-keys \
+            --attach-acr "$ACR_NAME" \
+            --tags application=toggle-vault \
+            --output none
+        
+        log_success "AKS cluster created"
+    fi
     
     # Get OIDC issuer URL
     OIDC_ISSUER=$(az aks show --name "$AKS_NAME" --resource-group "$RESOURCE_GROUP" --query "oidcIssuerProfile.issuerUrl" -o tsv)
